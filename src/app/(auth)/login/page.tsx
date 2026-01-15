@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import {
 } from "@/components/ui/card";
 
 function LoginForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
@@ -47,8 +46,8 @@ function LoginForm() {
         return;
       }
 
-      router.push(callbackUrl);
-      router.refresh();
+      // Use hard redirect to ensure session is properly picked up
+      window.location.href = callbackUrl;
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
