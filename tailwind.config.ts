@@ -1,0 +1,152 @@
+import type { Config } from "tailwindcss";
+
+const config: Config = {
+  darkMode: ["class"],
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        // ChicList Brand Colors
+        blush: {
+          50: "#FDF5F5",
+          100: "#FBE9E9",
+          200: "#F8D6D6",
+          300: "#F4C2C2",
+          400: "#EDA3A3",
+          500: "#E68484",
+          600: "#D65C5C",
+          700: "#B94444",
+          800: "#8F3535",
+          900: "#652626",
+          DEFAULT: "#F4C2C2",
+        },
+        charcoal: {
+          50: "#F5F5F5",
+          100: "#E8E8E8",
+          200: "#D1D1D1",
+          300: "#A3A3A3",
+          400: "#757575",
+          500: "#525252",
+          600: "#3D3D3D",
+          700: "#2C2C2C",
+          800: "#1F1F1F",
+          900: "#141414",
+          DEFAULT: "#2C2C2C",
+        },
+        cream: {
+          50: "#FFFFFF",
+          100: "#FDFDFB",
+          200: "#FAFAF8",
+          300: "#F5F5F0",
+          400: "#EFEFE8",
+          500: "#E8E8DE",
+          600: "#D4D4C4",
+          700: "#B8B8A0",
+          800: "#9C9C7C",
+          900: "#7A7A5C",
+          DEFAULT: "#FAFAF8",
+        },
+        sage: {
+          50: "#F5F7F4",
+          100: "#E8EDE7",
+          200: "#D5DED3",
+          300: "#C5D0C2",
+          400: "#B5C4B1",
+          500: "#9DB397",
+          600: "#85A27D",
+          700: "#6B8663",
+          800: "#536850",
+          900: "#3B4A39",
+          DEFAULT: "#B5C4B1",
+        },
+        gold: {
+          50: "#FCF8F3",
+          100: "#F8EFE3",
+          200: "#F0DCC4",
+          300: "#E5C5A0",
+          400: "#D4A574",
+          500: "#C4894E",
+          600: "#A86F38",
+          700: "#85572C",
+          800: "#624121",
+          900: "#402B16",
+          DEFAULT: "#D4A574",
+        },
+        error: {
+          50: "#FCF6F6",
+          100: "#F8EAEA",
+          200: "#F0D5D5",
+          300: "#E5BDBD",
+          400: "#D4A5A5",
+          500: "#C48888",
+          600: "#B06B6B",
+          700: "#8F5252",
+          800: "#6A3D3D",
+          900: "#452828",
+          DEFAULT: "#D4A5A5",
+        },
+        // Semantic colors (shadcn/ui compatible)
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        primary: {
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        success: {
+          DEFAULT: "#B5C4B1",
+          foreground: "#2C2C2C",
+        },
+        destructive: {
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
+        },
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+        },
+        card: {
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
+        },
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        chart: {
+          1: "hsl(var(--chart-1))",
+          2: "hsl(var(--chart-2))",
+          3: "hsl(var(--chart-3))",
+          4: "hsl(var(--chart-4))",
+          5: "hsl(var(--chart-5))",
+        },
+      },
+      borderRadius: {
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+      },
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["ui-monospace", "SFMono-Regular", "monospace"],
+      },
+    },
+  },
+  plugins: [require("tailwindcss-animate")],
+};
+
+export default config;

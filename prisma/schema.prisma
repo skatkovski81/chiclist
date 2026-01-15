@@ -1,0 +1,168 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// NextAuth.js Models
+// ==========================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ==========================================
+// ChicList Application Models
+// ==========================================
+
+model User {
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  emailVerified         DateTime?
+  name                  String?
+  passwordHash          String?
+  image                 String?
+  emailNotifications    Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  lists         List[]
+  savedProducts SavedProduct[]
+  notifications Notification[]
+
+  @@index([email])
+}
+
+model Product {
+  id           String    @id @default(cuid())
+  url          String    @unique
+  title        String
+  imageUrl     String?
+  currentPrice Decimal?
+  currency     String    @default("USD")
+  retailer     String?
+  lastChecked  DateTime?
+  createdAt    DateTime  @default(now())
+
+  // Relations
+  savedProducts SavedProduct[]
+  priceHistory  PriceHistory[]
+
+  @@index([url])
+  @@index([retailer])
+}
+
+model List {
+  id        String   @id @default(cuid())
+  name      String
+  emoji     String?
+  userId    String
+  createdAt DateTime @default(now())
+
+  // Relations
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savedProducts SavedProduct[]
+
+  @@index([userId])
+}
+
+model SavedProduct {
+  id                String    @id @default(cuid())
+  userId            String
+  productId         String
+  listId            String?
+  targetPrice       Decimal?
+  notifyOnPriceDrop Boolean   @default(false)
+  isPurchased       Boolean   @default(false)
+  purchasedAt       DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+
+  // Relations
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  list    List?   @relation(fields: [listId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, productId])
+  @@index([userId])
+  @@index([productId])
+  @@index([listId])
+}
+
+model PriceHistory {
+  id        String   @id @default(cuid())
+  productId String
+  price     Decimal
+  checkedAt DateTime @default(now())
+
+  // Relations
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([checkedAt])
+}
+
+model Notification {
+  id            String   @id @default(cuid())
+  userId        String
+  productId     String
+  type          String   // "price_drop", "target_reached"
+  oldPrice      Decimal
+  newPrice      Decimal
+  targetPrice   Decimal?
+  isRead        Boolean  @default(false)
+  isSent        Boolean  @default(false) // For email sending
+  createdAt     DateTime @default(now())
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([productId])
+  @@index([isSent])
+}
