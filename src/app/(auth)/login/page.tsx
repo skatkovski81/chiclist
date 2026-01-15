@@ -41,14 +41,26 @@ function LoginForm() {
         redirect: false,
       });
 
-      if (result?.error) {
+      if (!result) {
+        setError("Something went wrong. Please try again.");
+        return;
+      }
+
+      if (result.error) {
         setError("Invalid email or password");
         return;
       }
 
-      // Use hard redirect to ensure session is properly picked up
-      window.location.href = callbackUrl;
-    } catch {
+      if (result.ok) {
+        // Use hard redirect to ensure session is properly picked up
+        window.location.href = callbackUrl;
+        return;
+      }
+
+      // Fallback error
+      setError("Login failed. Please try again.");
+    } catch (err) {
+      console.error("Login error:", err);
       setError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
