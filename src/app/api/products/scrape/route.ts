@@ -1271,6 +1271,14 @@ export async function POST(request: NextRequest) {
     const genericPrice = extractGenericPrice($);
     const genericImage = extractGenericImage($, url);
 
+    // Debug logging
+    console.log("[SCRAPER] Retailer type:", retailerType);
+    console.log("[SCRAPER] Retailer data:", JSON.stringify(retailerData));
+    console.log("[SCRAPER] JSON-LD data:", JSON.stringify(jsonLdData));
+    console.log("[SCRAPER] Meta data:", JSON.stringify(metaData));
+    console.log("[SCRAPER] Generic price:", genericPrice);
+    console.log("[SCRAPER] Generic image:", genericImage?.substring(0, 100));
+
     // Merge data with priority: Retailer-specific > JSON-LD > Meta > Generic
     result.title = retailerData.title || jsonLdData.title || metaData.title || null;
     result.price = retailerData.price || jsonLdData.price || metaData.price || genericPrice || null;
@@ -1278,6 +1286,8 @@ export async function POST(request: NextRequest) {
 
     // Make image URL absolute if needed
     result.imageUrl = makeAbsoluteUrl(result.imageUrl, url);
+
+    console.log("[SCRAPER] Final result:", JSON.stringify(result));
 
     return NextResponse.json(result);
   } catch (error) {
