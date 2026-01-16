@@ -42,11 +42,17 @@ export function AddProductModal({ isOpen, onClose, onSuccess, lists = [] }: AddP
   };
 
   const handleUrlBlur = async () => {
+    console.log("[AddProduct] URL blur triggered, url:", url);
+    console.log("[AddProduct] lastScrapedUrl:", lastScrapedUrl.current);
+    console.log("[AddProduct] isValidUrl:", isValidUrl(url));
+
     // Don't scrape if URL hasn't changed or is invalid
     if (!url || url === lastScrapedUrl.current || !isValidUrl(url)) {
+      console.log("[AddProduct] Skipping scrape - url empty, already scraped, or invalid");
       return;
     }
 
+    console.log("[AddProduct] Starting scrape for:", url);
     setIsScraping(true);
     setScrapeStatus("idle");
     lastScrapedUrl.current = url;
@@ -58,12 +64,16 @@ export function AddProductModal({ isOpen, onClose, onSuccess, lists = [] }: AddP
         body: JSON.stringify({ url }),
       });
 
+      console.log("[AddProduct] Scrape response status:", response.status);
+
       if (!response.ok) {
+        console.log("[AddProduct] Scrape failed with status:", response.status);
         setScrapeStatus("error");
         return;
       }
 
       const data = await response.json();
+      console.log("[AddProduct] Scrape data:", data);
 
       // Auto-fill fields if we got data
       let fieldsFound = 0;

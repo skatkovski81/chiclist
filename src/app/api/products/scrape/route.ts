@@ -454,20 +454,74 @@ function extractBestBuy($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
 function extractNordstrom($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
   const result: Partial<ScrapedProduct> = {};
 
+  // Try to extract from __NEXT_DATA__ or similar server-side data
+  const nextDataScript = $('script#__NEXT_DATA__').html();
+  if (nextDataScript) {
+    try {
+      const nextData = JSON.parse(nextDataScript);
+      const pageProps = nextData?.props?.pageProps;
+      if (pageProps?.product) {
+        const product = pageProps.product;
+        result.title = product.name || product.title || null;
+        result.price = product.price?.current || product.currentPrice || null;
+        result.imageUrl = product.images?.[0]?.url || product.imageUrl || null;
+        if (result.title || result.price) {
+          console.log("[SCRAPER] Nordstrom: Found data in __NEXT_DATA__");
+          return result;
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  // Try state data script
+  const stateScript = $('script').filter(function() {
+    const text = $(this).html() || '';
+    return text.includes('__PRELOADED_STATE__') || text.includes('window.__data__');
+  }).html();
+  if (stateScript) {
+    try {
+      const match = stateScript.match(/(?:__PRELOADED_STATE__|window\.__data__)\s*=\s*({[\s\S]+?});/);
+      if (match) {
+        const data = JSON.parse(match[1]);
+        // Look for product data in various locations
+        const product = data?.product || data?.pdp?.product || data?.products?.[0];
+        if (product) {
+          result.title = product.name || product.title || null;
+          result.price = product.price?.current || product.currentPrice || null;
+          result.imageUrl = product.images?.[0]?.url || null;
+          if (result.title || result.price) {
+            console.log("[SCRAPER] Nordstrom: Found data in preloaded state");
+            return result;
+          }
+        }
+      }
+    } catch {
+      // Ignore parse errors
+    }
+  }
+
+  // Standard selectors (for when JS has rendered)
   // Title
   const productTitle = $('[data-element="product-title"]').text().trim();
   const h1Title = $("h1").first().text().trim();
-  result.title = productTitle || h1Title || null;
+  const titleFromMeta = $('meta[property="og:title"]').attr("content");
+  result.title = productTitle || h1Title || titleFromMeta || null;
 
-  // Image
+  // Image - try multiple selectors
   const mainImage = $('[data-element="hero-image"] img').attr("src");
   const productImg = $(".product-image img").first().attr("src");
-  result.imageUrl = mainImage || productImg || null;
+  const galleryImg = $('[data-testid="gallery-image"]').first().attr("src");
+  const ogImage = $('meta[property="og:image"]').attr("content");
+  result.imageUrl = mainImage || productImg || galleryImg || ogImage || null;
 
-  // Price
+  // Price - try multiple selectors
   const priceEl = $('[data-element="price"]').text().trim();
   const salePrice = $('[data-element="sale-price"]').text().trim();
-  result.price = parsePrice(salePrice || priceEl);
+  const currentPrice = $('[data-testid="current-price"]').text().trim();
+  const priceSpan = $('span[itemprop="price"]').attr("content") || $('span[itemprop="price"]').text().trim();
+  result.price = parsePrice(salePrice || priceEl || currentPrice || priceSpan);
 
   return result;
 }
@@ -578,11 +632,82 @@ function extractHM($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
 // ASOS extraction
 function extractASOS($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
   const result: Partial<ScrapedProduct> = {};
-  result.title = $('[data-testid="product-title"]').text().trim() || $("h1").first().text().trim() || null;
-  result.imageUrl = $('[data-testid="main-image"] img').attr("src") || $(".gallery-image img").first().attr("src") || null;
-  const salePrice = $('[data-testid="current-price"]').text().trim();
-  const regularPrice = $('[data-testid="product-price"]').text().trim();
-  result.price = parsePrice(salePrice || regularPrice);
+
+  // Title - try multiple selectors
+  result.title = $('[data-testid="product-title"]').text().trim()
+    || $('[data-test-id="product-title"]').text().trim()
+    || $('h1[class*="title"]').first().text().trim()
+    || $("h1").first().text().trim()
+    || null;
+
+  // Image - try multiple selectors
+  result.imageUrl = $('[data-testid="main-image"] img').attr("src")
+    || $('[data-test-id="main-image"] img').attr("src")
+    || $('[data-testid="gallery-image-0"] img').attr("src")
+    || $('img[data-testid*="product"]').first().attr("src")
+    || $(".gallery-image img").first().attr("src")
+    || null;
+
+  // Price - ASOS uses various selectors, try them in order of preference
+  const priceSelectors = [
+    '[data-testid="current-price"]',
+    '[data-test-id="current-price"]',
+    '[data-testid="sale-price"]',
+    '[data-test-id="sale-price"]',
+    '[data-testid="product-price"]',
+    '[data-test-id="product-price"]',
+    'span[class*="current-price"]',
+    'span[class*="CurrentPrice"]',
+    'span[class*="SalePrice"]',
+    'span[class*="sale-price"]',
+    '[class*="price"] [class*="current"]',
+    '[class*="price"] [class*="sale"]',
+    '[class*="product-price"]',
+    'span[class*="Price"]',
+  ];
+
+  for (const selector of priceSelectors) {
+    const el = $(selector).first();
+    if (el.length) {
+      const priceText = el.text().trim();
+      console.log(`[SCRAPER] ASOS trying selector "${selector}": "${priceText}"`);
+      const price = parsePrice(priceText);
+      if (price && price > 5) { // Filter out very small numbers (likely percentages)
+        result.price = price;
+        console.log(`[SCRAPER] ASOS found price: ${price} from "${selector}"`);
+        break;
+      }
+    }
+  }
+
+  // If no price found via selectors, try looking in JSON data embedded in page
+  if (!result.price) {
+    const scripts = $('script').toArray();
+    for (const script of scripts) {
+      const content = $(script).html() || '';
+      // Look for price in product JSON data
+      const priceMatch = content.match(/"price"\s*:\s*{[^}]*"current"\s*:\s*{[^}]*"value"\s*:\s*([\d.]+)/);
+      if (priceMatch) {
+        const price = parseFloat(priceMatch[1]);
+        if (price > 5) {
+          result.price = price;
+          console.log(`[SCRAPER] ASOS found price in JSON: ${price}`);
+          break;
+        }
+      }
+      // Also try simpler pattern
+      const simplePriceMatch = content.match(/"currentPrice"\s*:\s*([\d.]+)/);
+      if (simplePriceMatch) {
+        const price = parseFloat(simplePriceMatch[1]);
+        if (price > 5) {
+          result.price = price;
+          console.log(`[SCRAPER] ASOS found currentPrice in JSON: ${price}`);
+          break;
+        }
+      }
+    }
+  }
+
   return result;
 }
 
@@ -811,11 +936,14 @@ function extractCharlotteTilbury($: cheerio.CheerioAPI): Partial<ScrapedProduct>
 
 // Generic price extraction from common selectors
 function extractGenericPrice($: cheerio.CheerioAPI): number | null {
+  // Priority selectors - more specific first
   const priceSelectors = [
     '[itemprop="price"]',
     '[data-price]',
     '[data-product-price]',
-    '.product-price',
+    '[data-current-price]',
+    '.product-price .current',
+    '.product-price .sale',
     '.price-current',
     '.price-value',
     '.current-price',
@@ -823,9 +951,11 @@ function extractGenericPrice($: cheerio.CheerioAPI): number | null {
     '.special-price',
     '.offer-price',
     '#price',
+    '.product-price',
     '.price',
-    '[class*="price"]',
   ];
+
+  const foundPrices: { price: number; selector: string }[] = [];
 
   for (const selector of priceSelectors) {
     const el = $(selector).first();
@@ -834,27 +964,64 @@ function extractGenericPrice($: cheerio.CheerioAPI): number | null {
       const dataPrice = el.attr("data-price") || el.attr("content") || el.attr("data-product-price");
       if (dataPrice) {
         const price = parsePrice(dataPrice);
-        if (price) return price;
+        if (price && price > 5) { // Filter out tiny numbers
+          console.log(`[SCRAPER] Generic price from data attr "${selector}": ${price}`);
+          foundPrices.push({ price, selector });
+        }
       }
 
       // Try text content
       const textPrice = el.text().trim();
       const price = parsePrice(textPrice);
-      if (price) return price;
+      if (price && price > 5) { // Filter out tiny numbers
+        console.log(`[SCRAPER] Generic price from text "${selector}": ${price}`);
+        foundPrices.push({ price, selector });
+      }
     }
   }
 
-  // Try regex pattern for prices in the page
+  // If we found prices via selectors, return the most likely one
+  // Prefer prices from more specific selectors (they come first)
+  if (foundPrices.length > 0) {
+    // If multiple prices, prefer ones that look like product prices (> $10 typically)
+    const productPrices = foundPrices.filter(p => p.price >= 10);
+    if (productPrices.length > 0) {
+      return productPrices[0].price;
+    }
+    return foundPrices[0].price;
+  }
+
+  // Last resort: regex pattern for prices in the page
+  // But be more careful - look for patterns that look like product prices
   const bodyText = $("body").text();
   const pricePattern = /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
   const matches = [...bodyText.matchAll(pricePattern)];
 
-  // Return the first reasonable price found
-  for (const match of matches) {
-    const price = parsePrice(match[1]);
-    if (price && price > 0 && price < 100000) {
-      return price;
+  // Collect all prices and find the most likely product price
+  const allPrices = matches
+    .map(match => parsePrice(match[1]))
+    .filter((price): price is number => price !== null && price > 10 && price < 10000);
+
+  if (allPrices.length > 0) {
+    // For product pages, the actual price is often repeated or is in a certain range
+    // Count frequency of each price
+    const priceFrequency = new Map<number, number>();
+    for (const price of allPrices) {
+      priceFrequency.set(price, (priceFrequency.get(price) || 0) + 1);
     }
+
+    // Return the most frequent price, or the first reasonable one
+    let maxFreq = 0;
+    let mostFrequentPrice = allPrices[0];
+    for (const [price, freq] of priceFrequency) {
+      if (freq > maxFreq) {
+        maxFreq = freq;
+        mostFrequentPrice = price;
+      }
+    }
+
+    console.log(`[SCRAPER] Generic price from regex (most frequent): ${mostFrequentPrice}`);
+    return mostFrequentPrice;
   }
 
   return null;
@@ -991,8 +1158,8 @@ function getRetailerType(url: string): string {
 // ScraperAPI key for blocked sites
 const SCRAPER_API_KEY = process.env.SCRAPER_API_KEY;
 
-// Fetch with timeout (8 seconds for Vercel's 10s limit)
-async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 8000): Promise<Response> {
+// Fetch with timeout (9 seconds for Vercel's 10s limit on hobby, longer for local dev)
+async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutMs = 9000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -1010,6 +1177,7 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}, timeoutM
 // Direct fetch with browser headers
 async function directFetch(url: string): Promise<string | null> {
   try {
+    console.log("[SCRAPER] Direct fetch starting for:", url);
     const response = await fetchWithTimeout(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -1031,21 +1199,32 @@ async function directFetch(url: string): Promise<string | null> {
     });
 
     if (!response.ok) {
-      console.log(`[SCRAPER] Direct fetch failed: ${response.status}`);
+      console.log(`[SCRAPER] Direct fetch failed with status: ${response.status}`);
       return null;
     }
 
+    console.log("[SCRAPER] Direct fetch got response, reading body...");
     const html = await response.text();
+    console.log(`[SCRAPER] Direct fetch got ${html.length} bytes`);
 
     // Check if we got a meaningful response (not a captcha/block page)
-    if (html.length < 1000 || html.includes("captcha") || html.includes("blocked")) {
+    if (html.length < 1000) {
+      console.log("[SCRAPER] Response too short, likely blocked");
+      return null;
+    }
+
+    if (html.includes("captcha") || html.includes("blocked")) {
       console.log("[SCRAPER] Direct fetch returned blocked/captcha page");
       return null;
     }
 
     return html;
   } catch (error) {
-    console.log("[SCRAPER] Direct fetch error:", error);
+    if (error instanceof Error && error.name === "AbortError") {
+      console.log("[SCRAPER] Direct fetch timed out (>9s)");
+    } else {
+      console.log("[SCRAPER] Direct fetch error:", error);
+    }
     return null;
   }
 }
@@ -1057,20 +1236,45 @@ async function fetchWithScraperAPI(url: string): Promise<string | null> {
     return null;
   }
 
+  // First try without render (faster, 15s timeout)
+  try {
+    const apiUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}`;
+    console.log("[SCRAPER] Trying ScraperAPI (no render)...");
+
+    const response = await fetchWithTimeout(apiUrl, {}, 15000);
+
+    if (response.ok) {
+      const html = await response.text();
+      // Check if we got meaningful content
+      if (html.length > 1000 && !html.includes("captcha")) {
+        console.log(`[SCRAPER] ScraperAPI (no render) got ${html.length} bytes`);
+        return html;
+      }
+      console.log("[SCRAPER] ScraperAPI (no render) got blocked/empty response, trying with render...");
+    } else {
+      console.log(`[SCRAPER] ScraperAPI (no render) failed: ${response.status}`);
+    }
+  } catch (error) {
+    console.log("[SCRAPER] ScraperAPI (no render) error:", error instanceof Error ? error.message : error);
+  }
+
+  // Then try with render (slower but handles JS, 25s timeout for local dev)
   try {
     const apiUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(url)}&render=true`;
-    console.log("[SCRAPER] Trying ScraperAPI...");
+    console.log("[SCRAPER] Trying ScraperAPI (with render)...");
 
-    const response = await fetchWithTimeout(apiUrl, {}, 9000);
+    const response = await fetchWithTimeout(apiUrl, {}, 25000);
 
     if (!response.ok) {
-      console.log(`[SCRAPER] ScraperAPI failed: ${response.status}`);
+      console.log(`[SCRAPER] ScraperAPI (with render) failed: ${response.status}`);
       return null;
     }
 
-    return await response.text();
+    const html = await response.text();
+    console.log(`[SCRAPER] ScraperAPI (with render) got ${html.length} bytes`);
+    return html;
   } catch (error) {
-    console.log("[SCRAPER] ScraperAPI error:", error);
+    console.log("[SCRAPER] ScraperAPI (with render) error:", error instanceof Error ? error.message : error);
     return null;
   }
 }
@@ -1078,8 +1282,10 @@ async function fetchWithScraperAPI(url: string): Promise<string | null> {
 export async function POST(request: NextRequest) {
   try {
     const session = await auth();
+    console.log("[SCRAPER] Session check:", session?.user?.id ? "authenticated" : "not authenticated");
 
     if (!session?.user?.id) {
+      console.log("[SCRAPER] Rejecting - no session");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
@@ -1088,8 +1294,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { url } = body;
+    console.log("[SCRAPER] Received URL:", url);
 
     if (!url) {
+      console.log("[SCRAPER] Rejecting - no URL provided");
       return NextResponse.json(
         { error: "URL is required" },
         { status: 400 }
@@ -1100,6 +1308,7 @@ export async function POST(request: NextRequest) {
     try {
       new URL(url);
     } catch {
+      console.log("[SCRAPER] Rejecting - invalid URL format");
       return NextResponse.json(
         { error: "Invalid URL" },
         { status: 400 }
@@ -1107,6 +1316,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Try direct fetch first, then ScraperAPI as fallback
+    console.log("[SCRAPER] Starting direct fetch...");
     let html = await directFetch(url);
     let usedScraperAPI = false;
 
@@ -1117,8 +1327,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (!html) {
+      console.log("[SCRAPER] Both fetch methods failed - returning 400");
       return NextResponse.json(
-        { error: "Failed to fetch URL. The site may be blocking requests." },
+        { error: "Failed to fetch URL. The site may be blocking requests or took too long to respond." },
         { status: 400 }
       );
     }
