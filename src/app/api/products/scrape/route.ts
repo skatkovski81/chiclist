@@ -16,6 +16,7 @@ function extractRetailer(url: string): string {
     const domain = hostname.replace(/^www\./, "");
 
     const retailers: Record<string, string> = {
+      // Marketplaces
       "amazon.com": "Amazon",
       "amazon.co.uk": "Amazon UK",
       "amazon.ca": "Amazon Canada",
@@ -23,33 +24,107 @@ function extractRetailer(url: string): string {
       "ebay.com": "eBay",
       "walmart.com": "Walmart",
       "target.com": "Target",
-      "bestbuy.com": "Best Buy",
-      "nordstrom.com": "Nordstrom",
-      "macys.com": "Macy's",
-      "sephora.com": "Sephora",
-      "ulta.com": "Ulta",
+      "costco.com": "Costco",
       "etsy.com": "Etsy",
-      "zappos.com": "Zappos",
-      "asos.com": "ASOS",
+
+      // Electronics
+      "bestbuy.com": "Best Buy",
+      "newegg.com": "Newegg",
+      "bhphotovideo.com": "B&H Photo",
+      "apple.com": "Apple",
+
+      // Luxury/Designer Fashion
+      "net-a-porter.com": "Net-A-Porter",
+      "farfetch.com": "Farfetch",
+      "ssense.com": "SSENSE",
+      "mytheresa.com": "Mytheresa",
+      "matchesfashion.com": "MatchesFashion",
+      "neimanmarcus.com": "Neiman Marcus",
+      "saksfifthavenue.com": "Saks Fifth Avenue",
+      "bergdorfgoodman.com": "Bergdorf Goodman",
+      "modaoperandi.com": "Moda Operandi",
+      "therealreal.com": "The RealReal",
+      "vestiairecollective.com": "Vestiaire Collective",
+
+      // Fast Fashion
       "zara.com": "Zara",
       "hm.com": "H&M",
+      "mango.com": "Mango",
+      "stories.com": "& Other Stories",
+      "cosstores.com": "COS",
+      "asos.com": "ASOS",
+      "revolve.com": "Revolve",
+      "shein.com": "SHEIN",
+      "prettylittlething.com": "PrettyLittleThing",
+      "boohoo.com": "Boohoo",
+      "nastygal.com": "Nasty Gal",
+      "forever21.com": "Forever 21",
+      "uniqlo.com": "UNIQLO",
+      "urbanoutfitters.com": "Urban Outfitters",
+
+      // Department Stores
+      "nordstrom.com": "Nordstrom",
+      "bloomingdales.com": "Bloomingdale's",
+      "macys.com": "Macy's",
+      "kohls.com": "Kohl's",
+      "dillards.com": "Dillard's",
+      "jcpenney.com": "JCPenney",
+
+      // Mid-range Fashion
+      "anthropologie.com": "Anthropologie",
+      "freepeople.com": "Free People",
+      "jcrew.com": "J.Crew",
+      "bananarepublic.com": "Banana Republic",
+      "gap.com": "Gap",
+      "oldnavy.com": "Old Navy",
+      "abercrombie.com": "Abercrombie & Fitch",
+      "hollisterco.com": "Hollister",
+      "express.com": "Express",
+      "loft.com": "LOFT",
+      "anntaylor.com": "Ann Taylor",
+      "whitehouseblackmarket.com": "White House Black Market",
+      "chicos.com": "Chico's",
+      "shopbop.com": "Shopbop",
+
+      // Footwear
       "nike.com": "Nike",
       "adidas.com": "Adidas",
-      "apple.com": "Apple",
-      "costco.com": "Costco",
-      "kohls.com": "Kohl's",
+      "zappos.com": "Zappos",
+      "dsw.com": "DSW",
+      "stevemadden.com": "Steve Madden",
+      "footlocker.com": "Foot Locker",
+      "newbalance.com": "New Balance",
+      "puma.com": "Puma",
+      "reebok.com": "Reebok",
+      "vans.com": "Vans",
+      "converse.com": "Converse",
+      "allbirds.com": "Allbirds",
+
+      // Beauty
+      "sephora.com": "Sephora",
+      "ulta.com": "Ulta",
+      "glossier.com": "Glossier",
+      "cultbeauty.co.uk": "Cult Beauty",
+      "beautylish.com": "Beautylish",
+      "dermstore.com": "Dermstore",
+      "spacenk.com": "Space NK",
+      "bluemercury.com": "Bluemercury",
+      "fentybeauty.com": "Fenty Beauty",
+      "charlottetilbury.com": "Charlotte Tilbury",
+      "patmcgrath.com": "Pat McGrath Labs",
+      "kiehls.com": "Kiehl's",
+      "larosche-posay.com": "La Roche-Posay",
+
+      // Home
       "wayfair.com": "Wayfair",
       "homedepot.com": "Home Depot",
       "lowes.com": "Lowe's",
-      "newegg.com": "Newegg",
-      "bhphotovideo.com": "B&H Photo",
-      "bloomingdales.com": "Bloomingdale's",
-      "saksfifthavenue.com": "Saks Fifth Avenue",
-      "neimanmarcus.com": "Neiman Marcus",
-      "shopbop.com": "Shopbop",
-      "net-a-porter.com": "Net-A-Porter",
-      "ssense.com": "SSENSE",
-      "farfetch.com": "Farfetch",
+      "potterybarn.com": "Pottery Barn",
+      "westelm.com": "West Elm",
+      "cb2.com": "CB2",
+      "crateandbarrel.com": "Crate & Barrel",
+      "restorationhardware.com": "RH",
+      "williams-sonoma.com": "Williams Sonoma",
     };
 
     if (retailers[domain]) {
@@ -397,6 +472,343 @@ function extractNordstrom($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
   return result;
 }
 
+// ==========================================
+// LUXURY FASHION RETAILERS
+// ==========================================
+
+// Net-A-Porter extraction
+function extractNetAPorter($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-pid] h1').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".ProductImage img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Farfetch extraction
+function extractFarfetch($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-tstid="productName"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-tstid="productImage"] img').attr("src") || $(".ProductImages img").first().attr("src") || null;
+  const priceEl = $('[data-tstid="priceInfo-original"]').text().trim() || $('[data-tstid="priceInfo-sale"]').text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// SSENSE extraction
+function extractSSENSE($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="pdp-image"] img').attr("src") || $(".pdp-image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="product-sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Mytheresa extraction
+function extractMytheresa($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $(".product-name h1").text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $(".product-image img").first().attr("src") || $('[data-testid="product-image"] img').attr("src") || null;
+  const priceEl = $(".price-box .price").first().text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// Saks Fifth Avenue extraction
+function extractSaks($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-at="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-at="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const salePrice = $('[data-at="sale-price"]').text().trim();
+  const regularPrice = $('[data-at="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Neiman Marcus extraction
+function extractNeimanMarcus($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-test="product-name"]').text().trim() || $(".product-title h1").text().trim() || null;
+  result.imageUrl = $('[data-test="product-image"] img').attr("src") || $(".product-media img").first().attr("src") || null;
+  const priceEl = $('[data-test="product-price"]').text().trim() || $(".product-price").text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// Moda Operandi extraction
+function extractModaOperandi($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-title"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || null;
+  const priceEl = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// ==========================================
+// FAST FASHION RETAILERS
+// ==========================================
+
+// Zara extraction (often uses dynamic content, rely on meta tags)
+function extractZara($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  // Zara uses heavy JS, rely on og: tags and JSON-LD
+  result.title = $('[data-name="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('picture source').first().attr("srcset")?.split(" ")[0] || $(".media-image img").first().attr("src") || null;
+  const priceEl = $('[data-qa="buy-module-price"]').text().trim() || $(".price__amount").text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// H&M extraction
+function extractHM($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $(".ProductName h1").text().trim() || $('[data-testid="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".ProductImage img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim() || $(".sale-price").text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim() || $(".regular-price").text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// ASOS extraction
+function extractASOS($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-title"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="main-image"] img').attr("src") || $(".gallery-image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="current-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Revolve extraction
+function extractRevolve($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-qa="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-qa="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const salePrice = $('[data-qa="sale-price"]').text().trim();
+  const regularPrice = $('[data-qa="price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// SHEIN extraction
+function extractShein($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $(".product-intro__head-name").text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $(".product-intro__main-img img").attr("src") || $(".crop-image-container img").first().attr("src") || null;
+  const priceEl = $(".product-intro__head-price .from").text().trim() || $(".product-intro__head-price").text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// UNIQLO extraction
+function extractUniqlo($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-test="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-test="product-image"] img').attr("src") || $(".ProductImage img").first().attr("src") || null;
+  const priceEl = $('[data-test="product-price"]').text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// Mango extraction
+function extractMango($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".ProductImage img").first().attr("src") || null;
+  const priceEl = $('[data-testid="product-price"]').text().trim() || $(".product-price").text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// ==========================================
+// MID-RANGE FASHION RETAILERS
+// ==========================================
+
+// Anthropologie extraction
+function extractAnthropologie($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-title"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Free People extraction
+function extractFreePeople($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-title"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Urban Outfitters extraction
+function extractUrbanOutfitters($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-qa="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-qa="product-image"] img').attr("src") || $(".c-pwa-image-viewer img").first().attr("src") || null;
+  const salePrice = $('[data-qa="sale-price"]').text().trim();
+  const regularPrice = $('[data-qa="price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// J.Crew extraction
+function extractJCrew($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-name"]').text().trim() || $(".product-name h1").text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim() || $(".sales-price").text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Gap/Banana Republic/Old Navy (similar structure)
+function extractGapBrands($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-title"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".product__image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Bloomingdale's extraction
+function extractBloomingdales($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-auto="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-auto="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const salePrice = $('[data-auto="sale-price"]').text().trim();
+  const regularPrice = $('[data-auto="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Macy's extraction
+function extractMacys($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-auto="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-auto="main-image"] img').attr("src") || $(".main-image img").first().attr("src") || null;
+  const salePrice = $('[data-auto="sale-price"]').text().trim();
+  const regularPrice = $('[data-auto="regular-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// ==========================================
+// FOOTWEAR RETAILERS
+// ==========================================
+
+// Nike extraction
+function extractNike($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-test="product-title"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-test="hero-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const priceEl = $('[data-test="product-price"]').text().trim() || $(".product-price").text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// Adidas extraction
+function extractAdidas($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-title"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".gallery-image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Zappos extraction
+function extractZappos($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[itemprop="name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[itemprop="image"]').attr("src") || $(".product-image img").first().attr("src") || null;
+  const priceEl = $('[itemprop="price"]').attr("content") || $(".price").first().text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// DSW extraction
+function extractDSW($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Foot Locker extraction
+function extractFootLocker($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-test="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-test="product-image"] img').attr("src") || $(".ProductImage img").first().attr("src") || null;
+  const priceEl = $('[data-test="product-price"]').text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// ==========================================
+// BEAUTY RETAILERS
+// ==========================================
+
+// Sephora extraction
+function extractSephora($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-at="product-name"]').text().trim() || $('[data-testid="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-at="product-image"] img').attr("src") || $('[data-testid="product-image"] img').attr("src") || null;
+  const priceEl = $('[data-at="product-price"]').text().trim() || $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// Ulta extraction
+function extractUlta($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-title"]').text().trim() || $(".ProductMainSection h1").text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".ProductImage img").first().attr("src") || null;
+  const salePrice = $('[data-testid="sale-price"]').text().trim();
+  const regularPrice = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(salePrice || regularPrice);
+  return result;
+}
+
+// Glossier extraction
+function extractGlossier($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-name"]').text().trim() || $("h1").first().text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const priceEl = $('[data-testid="product-price"]').text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
+// Charlotte Tilbury extraction
+function extractCharlotteTilbury($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+  result.title = $('[data-testid="product-name"]').text().trim() || $(".product-name h1").text().trim() || null;
+  result.imageUrl = $('[data-testid="product-image"] img').attr("src") || $(".product-image img").first().attr("src") || null;
+  const priceEl = $('[data-testid="product-price"]').text().trim() || $(".product-price").text().trim();
+  result.price = parsePrice(priceEl);
+  return result;
+}
+
 // Generic price extraction from common selectors
 function extractGenericPrice($: cheerio.CheerioAPI): number | null {
   const priceSelectors = [
@@ -523,12 +935,55 @@ function makeAbsoluteUrl(url: string | null, baseUrl: string): string | null {
 function getRetailerType(url: string): string {
   const hostname = new URL(url).hostname.toLowerCase();
 
+  // Marketplaces
   if (hostname.includes("amazon")) return "amazon";
   if (hostname.includes("target")) return "target";
   if (hostname.includes("walmart")) return "walmart";
   if (hostname.includes("etsy")) return "etsy";
   if (hostname.includes("bestbuy")) return "bestbuy";
+
+  // Luxury Fashion
+  if (hostname.includes("net-a-porter")) return "netaporter";
+  if (hostname.includes("farfetch")) return "farfetch";
+  if (hostname.includes("ssense")) return "ssense";
+  if (hostname.includes("mytheresa")) return "mytheresa";
+  if (hostname.includes("matchesfashion")) return "matchesfashion";
+  if (hostname.includes("saksfifthavenue") || hostname.includes("saks.com")) return "saks";
+  if (hostname.includes("neimanmarcus")) return "neimanmarcus";
+  if (hostname.includes("bergdorfgoodman")) return "bergdorf";
+  if (hostname.includes("modaoperandi")) return "modaoperandi";
+
+  // Fast Fashion
+  if (hostname.includes("zara")) return "zara";
+  if (hostname.includes("hm.com") || hostname.includes("h&m")) return "hm";
+  if (hostname.includes("asos")) return "asos";
+  if (hostname.includes("revolve")) return "revolve";
+  if (hostname.includes("shein")) return "shein";
+  if (hostname.includes("uniqlo")) return "uniqlo";
+  if (hostname.includes("mango")) return "mango";
+
+  // Mid-range Fashion
   if (hostname.includes("nordstrom")) return "nordstrom";
+  if (hostname.includes("bloomingdales")) return "bloomingdales";
+  if (hostname.includes("macys")) return "macys";
+  if (hostname.includes("anthropologie")) return "anthropologie";
+  if (hostname.includes("freepeople")) return "freepeople";
+  if (hostname.includes("urbanoutfitters")) return "urbanoutfitters";
+  if (hostname.includes("jcrew")) return "jcrew";
+  if (hostname.includes("gap.com") || hostname.includes("bananarepublic") || hostname.includes("oldnavy")) return "gapbrands";
+
+  // Footwear
+  if (hostname.includes("nike.com")) return "nike";
+  if (hostname.includes("adidas")) return "adidas";
+  if (hostname.includes("zappos")) return "zappos";
+  if (hostname.includes("dsw")) return "dsw";
+  if (hostname.includes("footlocker")) return "footlocker";
+
+  // Beauty
+  if (hostname.includes("sephora")) return "sephora";
+  if (hostname.includes("ulta")) return "ulta";
+  if (hostname.includes("glossier")) return "glossier";
+  if (hostname.includes("charlottetilbury")) return "charlottetilbury";
 
   return "generic";
 }
@@ -609,6 +1064,7 @@ export async function POST(request: NextRequest) {
     // 1. Try retailer-specific extraction first
     let retailerData: Partial<ScrapedProduct> = {};
     switch (retailerType) {
+      // Marketplaces
       case "amazon":
         retailerData = extractAmazon($);
         break;
@@ -624,8 +1080,108 @@ export async function POST(request: NextRequest) {
       case "bestbuy":
         retailerData = extractBestBuy($);
         break;
+
+      // Luxury Fashion
+      case "netaporter":
+        retailerData = extractNetAPorter($);
+        break;
+      case "farfetch":
+        retailerData = extractFarfetch($);
+        break;
+      case "ssense":
+        retailerData = extractSSENSE($);
+        break;
+      case "mytheresa":
+        retailerData = extractMytheresa($);
+        break;
+      case "saks":
+        retailerData = extractSaks($);
+        break;
+      case "neimanmarcus":
+        retailerData = extractNeimanMarcus($);
+        break;
+      case "modaoperandi":
+        retailerData = extractModaOperandi($);
+        break;
+
+      // Fast Fashion
+      case "zara":
+        retailerData = extractZara($);
+        break;
+      case "hm":
+        retailerData = extractHM($);
+        break;
+      case "asos":
+        retailerData = extractASOS($);
+        break;
+      case "revolve":
+        retailerData = extractRevolve($);
+        break;
+      case "shein":
+        retailerData = extractShein($);
+        break;
+      case "uniqlo":
+        retailerData = extractUniqlo($);
+        break;
+      case "mango":
+        retailerData = extractMango($);
+        break;
+
+      // Mid-range Fashion
       case "nordstrom":
         retailerData = extractNordstrom($);
+        break;
+      case "bloomingdales":
+        retailerData = extractBloomingdales($);
+        break;
+      case "macys":
+        retailerData = extractMacys($);
+        break;
+      case "anthropologie":
+        retailerData = extractAnthropologie($);
+        break;
+      case "freepeople":
+        retailerData = extractFreePeople($);
+        break;
+      case "urbanoutfitters":
+        retailerData = extractUrbanOutfitters($);
+        break;
+      case "jcrew":
+        retailerData = extractJCrew($);
+        break;
+      case "gapbrands":
+        retailerData = extractGapBrands($);
+        break;
+
+      // Footwear
+      case "nike":
+        retailerData = extractNike($);
+        break;
+      case "adidas":
+        retailerData = extractAdidas($);
+        break;
+      case "zappos":
+        retailerData = extractZappos($);
+        break;
+      case "dsw":
+        retailerData = extractDSW($);
+        break;
+      case "footlocker":
+        retailerData = extractFootLocker($);
+        break;
+
+      // Beauty
+      case "sephora":
+        retailerData = extractSephora($);
+        break;
+      case "ulta":
+        retailerData = extractUlta($);
+        break;
+      case "glossier":
+        retailerData = extractGlossier($);
+        break;
+      case "charlottetilbury":
+        retailerData = extractCharlotteTilbury($);
         break;
     }
 
