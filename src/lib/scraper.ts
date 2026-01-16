@@ -274,8 +274,18 @@ function getRetailerType(url: string): string {
   return "generic";
 }
 
+// Validate that a price is reasonable for a product
+function isValidPrice(price: number | null | undefined): price is number {
+  if (price === null || price === undefined) return false;
+  return price >= 5 && price <= 10000;
+}
+
 export async function scrapeProductPrice(url: string): Promise<{ price: number | null; error?: string }> {
   try {
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     const response = await fetch(url, {
       headers: {
         "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -294,7 +304,10 @@ export async function scrapeProductPrice(url: string): Promise<{ price: number |
         "Upgrade-Insecure-Requests": "1",
       },
       redirect: "follow",
+      signal: controller.signal,
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       return { price: null, error: `Failed to fetch URL: ${response.status}` };
@@ -310,24 +323,34 @@ export async function scrapeProductPrice(url: string): Promise<{ price: number |
 
     if (retailerType === "amazon") {
       const amazonData = extractAmazon($);
-      price = amazonData.price || null;
+      if (isValidPrice(amazonData.price)) {
+        price = amazonData.price;
+      }
     }
 
     // Try JSON-LD
     if (!price) {
       const jsonLdData = extractJsonLd($);
-      price = jsonLdData.price || null;
+      if (isValidPrice(jsonLdData.price)) {
+        price = jsonLdData.price;
+      }
     }
 
     // Try meta tags
     if (!price) {
       const metaData = extractMetaTags($);
-      price = metaData.price || null;
+      if (isValidPrice(metaData.price)) {
+        price = metaData.price;
+      }
     }
 
-    // Try generic extraction
+    // Try generic extraction (but be more careful)
     if (!price) {
-      price = extractGenericPrice($);
+      const genericPrice = extractGenericPrice($);
+      // Only use generic price if it's likely a product price (>= $15)
+      if (isValidPrice(genericPrice) && genericPrice >= 15) {
+        price = genericPrice;
+      }
     }
 
     return { price };

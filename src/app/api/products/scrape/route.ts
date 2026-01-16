@@ -1490,9 +1490,46 @@ export async function POST(request: NextRequest) {
     console.log("[SCRAPER] Generic price:", genericPrice);
     console.log("[SCRAPER] Generic image:", genericImage?.substring(0, 100));
 
+    // Helper to validate price - must be reasonable for a product
+    const isValidPrice = (price: number | null | undefined): price is number => {
+      if (price === null || price === undefined) return false;
+      // Most products are between $5 and $10,000
+      // Filter out very small numbers (likely percentages, discounts)
+      // and very large numbers (likely errors)
+      return price >= 5 && price <= 10000;
+    };
+
     // Merge data with priority: Retailer-specific > JSON-LD > Meta > Generic
+    // But validate each price before using it
     result.title = retailerData.title || jsonLdData.title || metaData.title || null;
-    result.price = retailerData.price || jsonLdData.price || metaData.price || genericPrice || null;
+
+    // Price selection with validation
+    let selectedPrice: number | null = null;
+    let priceSource = "none";
+
+    if (isValidPrice(retailerData.price)) {
+      selectedPrice = retailerData.price;
+      priceSource = "retailer";
+    } else if (isValidPrice(jsonLdData.price)) {
+      selectedPrice = jsonLdData.price;
+      priceSource = "json-ld";
+    } else if (isValidPrice(metaData.price)) {
+      selectedPrice = metaData.price;
+      priceSource = "meta";
+    } else if (isValidPrice(genericPrice)) {
+      // For generic price, be extra careful - only use if it's likely a product price
+      // Product prices are typically > $10 for clothing
+      if (genericPrice >= 15) {
+        selectedPrice = genericPrice;
+        priceSource = "generic";
+      } else {
+        console.log(`[SCRAPER] Generic price ${genericPrice} seems too low, skipping`);
+      }
+    }
+
+    result.price = selectedPrice;
+    console.log(`[SCRAPER] Selected price: ${selectedPrice} from ${priceSource}`);
+
     result.imageUrl = retailerData.imageUrl || jsonLdData.imageUrl || metaData.imageUrl || genericImage || null;
 
     // Make image URL absolute if needed
