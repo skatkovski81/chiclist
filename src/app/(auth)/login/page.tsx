@@ -19,7 +19,6 @@ import {
 function LoginForm() {
   const searchParams = useSearchParams();
   const registered = searchParams.get("registered");
-  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
 
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -35,34 +34,16 @@ function LoginForm() {
     setError("");
 
     try {
-      const result = await signIn("credentials", {
-        email: formData.email,
+      // Let NextAuth handle the redirect entirely
+      await signIn("credentials", {
+        email: formData.email.toLowerCase(),
         password: formData.password,
-        redirect: false,
+        callbackUrl: "/dashboard",
+        redirect: true,
       });
-
-      if (!result) {
-        setError("Something went wrong. Please try again.");
-        return;
-      }
-
-      if (result.error) {
-        setError("Invalid email or password");
-        return;
-      }
-
-      if (result.ok) {
-        // Use hard redirect to ensure session is properly picked up
-        window.location.href = callbackUrl;
-        return;
-      }
-
-      // Fallback error
-      setError("Login failed. Please try again.");
     } catch (err) {
       console.error("Login error:", err);
-      setError("Something went wrong. Please try again.");
-    } finally {
+      setError("Invalid email or password");
       setIsLoading(false);
     }
   };
