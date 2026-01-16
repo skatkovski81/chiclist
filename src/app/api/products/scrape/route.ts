@@ -311,15 +311,88 @@ function extractWalmart($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
   const h1Title = $("h1").first().text().trim();
   result.title = productTitle || h1Title || null;
 
-  // Image
+  // Image - multiple selectors for Walmart
   const heroImage = $('[data-testid="hero-image"] img').attr("src");
   const mainImage = $(".hover-zoom-hero-image img").attr("src");
-  result.imageUrl = heroImage || mainImage || null;
+  const productImg = $('[data-testid="product-image"] img').attr("src");
+  const galleryImg = $('[data-testid="media-thumbnail"] img').first().attr("src");
+  result.imageUrl = heroImage || mainImage || productImg || galleryImg || null;
 
-  // Price
+  // Price - multiple selectors for Walmart
   const priceEl = $('[itemprop="price"]').attr("content");
   const priceDisplay = $('[data-automation="buybox-product-price"]').text().trim();
-  result.price = parsePrice(priceEl || priceDisplay);
+  const priceSpan = $('[data-testid="price-wrap"] span').first().text().trim();
+  const currentPrice = $(".price-current").text().trim();
+  result.price = parsePrice(priceEl || priceDisplay || priceSpan || currentPrice);
+
+  return result;
+}
+
+// Etsy-specific extraction
+function extractEtsy($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+
+  // Title - Etsy uses h1 and data attributes
+  const listingTitle = $('[data-listing-id] h1').text().trim();
+  const h1Title = $("h1").first().text().trim();
+  result.title = listingTitle || h1Title || null;
+
+  // Image - Etsy uses carousel and specific image containers
+  const listingImage = $('[data-listing-card-image] img').attr("src");
+  const carouselImg = $('[data-carousel-image] img').attr("src");
+  const galleryImg = $('.listing-page-image-container img').first().attr("src");
+  const mainImg = $('img[data-src]').first().attr("data-src");
+  result.imageUrl = listingImage || carouselImg || galleryImg || mainImg || null;
+
+  // Price - Etsy uses specific price containers
+  const priceEl = $('[data-buy-box-price]').text().trim();
+  const priceValue = $('[data-appears-component-name="price"] p').first().text().trim();
+  const salePrice = $('[data-selector="sale-price"]').text().trim();
+  result.price = parsePrice(priceEl || priceValue || salePrice);
+
+  return result;
+}
+
+// Best Buy specific extraction
+function extractBestBuy($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+
+  // Title
+  const productTitle = $('[data-testid="product-title"]').text().trim();
+  const h1Title = $(".sku-title h1").text().trim();
+  result.title = productTitle || h1Title || null;
+
+  // Image
+  const mainImage = $('[data-testid="primary-media-image"]').attr("src");
+  const productImg = $(".primary-image img").attr("src");
+  result.imageUrl = mainImage || productImg || null;
+
+  // Price
+  const priceEl = $('[data-testid="customer-price"] span').first().text().trim();
+  const priceBox = $(".priceView-customer-price span").first().text().trim();
+  result.price = parsePrice(priceEl || priceBox);
+
+  return result;
+}
+
+// Nordstrom specific extraction
+function extractNordstrom($: cheerio.CheerioAPI): Partial<ScrapedProduct> {
+  const result: Partial<ScrapedProduct> = {};
+
+  // Title
+  const productTitle = $('[data-element="product-title"]').text().trim();
+  const h1Title = $("h1").first().text().trim();
+  result.title = productTitle || h1Title || null;
+
+  // Image
+  const mainImage = $('[data-element="hero-image"] img').attr("src");
+  const productImg = $(".product-image img").first().attr("src");
+  result.imageUrl = mainImage || productImg || null;
+
+  // Price
+  const priceEl = $('[data-element="price"]').text().trim();
+  const salePrice = $('[data-element="sale-price"]').text().trim();
+  result.price = parsePrice(salePrice || priceEl);
 
   return result;
 }
@@ -453,6 +526,9 @@ function getRetailerType(url: string): string {
   if (hostname.includes("amazon")) return "amazon";
   if (hostname.includes("target")) return "target";
   if (hostname.includes("walmart")) return "walmart";
+  if (hostname.includes("etsy")) return "etsy";
+  if (hostname.includes("bestbuy")) return "bestbuy";
+  if (hostname.includes("nordstrom")) return "nordstrom";
 
   return "generic";
 }
@@ -541,6 +617,15 @@ export async function POST(request: NextRequest) {
         break;
       case "walmart":
         retailerData = extractWalmart($);
+        break;
+      case "etsy":
+        retailerData = extractEtsy($);
+        break;
+      case "bestbuy":
+        retailerData = extractBestBuy($);
+        break;
+      case "nordstrom":
+        retailerData = extractNordstrom($);
         break;
     }
 
