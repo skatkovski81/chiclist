@@ -34,16 +34,31 @@ function LoginForm() {
     setError("");
 
     try {
-      // Let NextAuth handle the redirect entirely
-      await signIn("credentials", {
+      const result = await signIn("credentials", {
         email: formData.email.toLowerCase(),
         password: formData.password,
-        callbackUrl: "/dashboard",
-        redirect: true,
+        redirect: false,
       });
+
+      console.log("[LOGIN] SignIn result:", result);
+
+      if (result?.error) {
+        setError("Invalid email or password");
+        setIsLoading(false);
+        return;
+      }
+
+      if (result?.ok) {
+        // Force hard redirect to ensure cookies are set
+        window.location.href = "/dashboard";
+        return;
+      }
+
+      setError("Login failed. Please try again.");
+      setIsLoading(false);
     } catch (err) {
       console.error("Login error:", err);
-      setError("Invalid email or password");
+      setError("Something went wrong. Please try again.");
       setIsLoading(false);
     }
   };
