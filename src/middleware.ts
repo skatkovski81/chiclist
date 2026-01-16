@@ -6,25 +6,31 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({
     req: request,
     secret: process.env.NEXTAUTH_SECRET,
+    cookieName: "next-auth.session-token",
   });
 
-  const isLoggedIn = !!token;
-  const isOnDashboard = request.nextUrl.pathname.startsWith("/dashboard");
-  const isOnAuthPage =
+  console.log("[MIDDLEWARE] Path:", request.nextUrl.pathname);
+  console.log("[MIDDLEWARE] Token exists:", !!token);
+
+  const isAuthPage =
     request.nextUrl.pathname.startsWith("/login") ||
     request.nextUrl.pathname.startsWith("/signup");
 
-  // Redirect logged-in users away from auth pages
-  if (isLoggedIn && isOnAuthPage) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+  // If on auth page and logged in, redirect to dashboard
+  if (isAuthPage) {
+    if (token) {
+      console.log("[MIDDLEWARE] Logged in user on auth page, redirecting to dashboard");
+      return NextResponse.redirect(new URL("/dashboard", request.url));
+    }
+    return NextResponse.next();
   }
 
-  // Redirect non-logged-in users to login page when accessing dashboard
-  if (!isLoggedIn && isOnDashboard) {
-    const callbackUrl = encodeURIComponent(request.nextUrl.pathname);
-    return NextResponse.redirect(
-      new URL(`/login?callbackUrl=${callbackUrl}`, request.url)
-    );
+  // If on dashboard and not logged in, redirect to login
+  if (request.nextUrl.pathname.startsWith("/dashboard")) {
+    if (!token) {
+      console.log("[MIDDLEWARE] No token, redirecting to login");
+      return NextResponse.redirect(new URL("/login", request.url));
+    }
   }
 
   return NextResponse.next();
